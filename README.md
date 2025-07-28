@@ -63,7 +63,15 @@ public func configure(_ app: Application) async throws {
 
 That's basically it, from now on, every request that'll pass the Middleware will require a valid `X-Apple-Device-Token` header to be set, otherwise it will be rejected.
 
-> **Note:** You can pass in the private key either multilined or single-lined separated by `\n` and it will parse the key correctly. 
+> **Note:** You can pass in the private key either multilined or single-lined separated by `\n` and it will parse the key correctly.
+
+## Environment Variable Breakdown
+| Environment Key        | Description                                                                                                 |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------- |
+| APPLE_JWT_PRIVATE_KEY  | The full private key you downloaded as a string.                                                            |
+| APPLE_JWT_KID          | The id of your private key. This is found in the management panel for your private key.                     |
+| APPLE_JWT_ISS          | Your Apple Developer team id.                                                                               |
+| APPLE_JWT_BYPASS_TOKEN | A token to use to bypass device check. This is helpful for development with the Xcode Simulator. (Optional) |
 
 ## 🔑 Setting up your App / Retrieving a DeviceCheck Token
 
