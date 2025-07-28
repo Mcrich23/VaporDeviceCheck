@@ -10,9 +10,11 @@ First add the package to your `Package.swift`:
 .package(url: "https://github.com/Bearologics/VaporDeviceCheck", from: "1.0.1")
 ```
 
-Then configure your Vapor `Application` and make sure to set up the JWT credentials to authenticate against the DeviceCheck API, in this example we're using environment variables which are prefixed `APPLE_JWT_` and install the Middleware:
+Then configure your Vapor `Application` and make sure to set up the JWT credentials to authenticate against the DeviceCheck API, in this example we're using environment variables which are prefixed `APPLE_JWT_` and install the Middleware with this setup function:
 
 ```swift
+import Vapor
+import JWTKit
 import VaporDeviceCheck
 
 enum ConfigurationError: Error {
@@ -20,36 +22,48 @@ enum ConfigurationError: Error {
 }
 
 // configures your application
-public func configure(_ app: Application) throws {
-    guard let jwtPrivateKeyString = Environment.get("APPLE_JWT_PRIVATE_KEY") else {
+public func configureDeviceCheck(_ app: Application) async throws {
+    guard let jwtPrivateKeyStringEscaped = Environment.get("APPLE_JWT_PRIVATE_KEY") else {
         throw ConfigurationError.noAppleJwtPrivateKey
     }
-        
+    let jwtPrivateKeyString = jwtPrivateKeyStringEscaped.replacingOccurrences(of: "\\n", with: "\n")
+    
     guard let jwtKidString = Environment.get("APPLE_JWT_KID") else {
         throw ConfigurationError.noAppleJwtKid
     }
-        
-    guard let jwkIssString = Environment.get("APPLE_JWT_ISS") else {
+    guard let jwtIss = Environment.get("APPLE_JWT_ISS") else {
         throw ConfigurationError.noAppleJwtIss
     }
-        
-    let jwkKid = JWKIdentifier(string: jwtKidString)
-        
-    app.jwt.signers.use(
-        .es256(key: try! .private(pem: jwtPrivateKeyString.data(using: .utf8)!)),
-        kid: jwkKid,
-        isDefault: false
-    )
+    
+    let jwtBypassToken = Environment.get("APPLE_JWT_BYPASS_TOKEN")
 
-    // install middleware
-    app.middleware.use(DeviceCheck(jwkKid: jwkKid, jwkIss: jwkIssString, excludes: [["health"]]))
+    let kid = JWKIdentifier(string: jwtKidString)
+    let privateKey = try ES256PrivateKey(pem: Data(jwtPrivateKeyString.utf8))
 
-    // register routes
-    try routes(app)
+    // Add ECDSA key with JWKIdentifier
+    await app.jwt.keys.add(ecdsa: privateKey, kid: kid)
+
+    app.middleware.use(DeviceCheck(
+        jwkKid: kid,
+        jwkIss: jwtIss,
+        excludes: [["health"]],
+        bypassTokens: jwtBypassToken == nil ? [] : [jwtBypassToken!]
+    ))
+}
+```
+
+Then you call it from configure:
+
+```swift
+public func configure(_ app: Application) async throws {
+    try await configureDeviceCheck(app)
+    ...
 }
 ```
 
 That's basically it, from now on, every request that'll pass the Middleware will require a valid `X-Apple-Device-Token` header to be set, otherwise it will be rejected.
+
+> **Note:** You can pass in the private key either multilined or single-lined separated by `\n` and it will parse the key correctly. 
 
 ## 🔑 Setting up your App / Retrieving a DeviceCheck Token
 
