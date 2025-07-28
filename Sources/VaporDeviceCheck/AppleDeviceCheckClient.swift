@@ -9,9 +9,10 @@ public struct AppleDeviceCheckClient: DeviceCheckClient, Sendable {
         let promise = request.eventLoop.makePromise(of: ClientResponse.self)
         
         promise.completeWithTask {
-            var response = try await request.client.post(URI(string: "https://\(isSandbox ? "api.development" : "api").devicecheck.apple.com/v1/validate_device_token"))
-            response.headers.add(name: .authorization, value: "Bearer \(try await signedJwt(for: request))")
-            try response.content.encode(DeviceCheckRequest(deviceToken: deviceToken))
+            var headers = HTTPHeaders()
+            headers.add(name: .authorization, value: "Bearer \(try await signedJwt(for: request))")
+            
+            let response = try await request.client.put((URI(string: "https://\(isSandbox ? "api.development" : "api").devicecheck.apple.com/v1/validate_device_token")), headers: headers, content: DeviceCheckRequest(deviceToken: deviceToken))
             
             return response
         }
