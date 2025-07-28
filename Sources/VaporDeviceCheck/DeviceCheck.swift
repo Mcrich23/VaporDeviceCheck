@@ -19,7 +19,7 @@ public struct DeviceCheck: Middleware {
     }
     
     public func respond(to request: Request, chainingTo next: Responder) -> EventLoopFuture<Response> {
-        requestDeviceCheck(on: request, chainingTo: next, isSandbox: false)
+        requestDeviceCheck(on: request, chainingTo: next, isSandbox: [Environment.development, Environment.testing].contains((try? Environment.detect()) ?? .production))
     }
 
     private func requestDeviceCheck(on request: Request, chainingTo next: Responder, isSandbox: Bool) -> EventLoopFuture<Response> {
