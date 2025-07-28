@@ -12,7 +12,7 @@ public struct AppleDeviceCheckClient: DeviceCheckClient, Sendable {
             var headers = HTTPHeaders()
             headers.add(name: .authorization, value: "Bearer \(try await signedJwt(for: request))")
             
-            let response = try await request.client.put((URI(string: "https://\(isSandbox ? "api.development" : "api").devicecheck.apple.com/v1/validate_device_token")), headers: headers, content: DeviceCheckRequest(deviceToken: deviceToken))
+            let response = try await request.client.post((URI(string: "https://\(isSandbox ? "api.development" : "api").devicecheck.apple.com/v1/validate_device_token")), headers: headers, content: DeviceCheckRequest(deviceToken: deviceToken))
             
             return response
         }
