@@ -26,12 +26,13 @@ public struct DeviceCheck: Middleware {
         if excludes?.map({ $0.string }).contains(where: { $0 == request.route?.path.string }) ?? false {
             return next.respond(to: request)
         }
-        if bypassTokens.contains(where: { $0 == request.headers.first(name: .xAppleDeviceToken) }) {
-            return next.respond(to: request)
-        }
         
         guard let xAppleDeviceToken = request.headers.first(name: .xAppleDeviceToken) else {
             return request.eventLoop.makeFailedFuture(NoAppleDeviceTokenError())
+        }
+        
+        if bypassTokens.contains(where: { $0 == (String(data: Data(base64Encoded: xAppleDeviceToken) ?? Data(), encoding: .utf8) ?? xAppleDeviceToken) }) {
+            return next.respond(to: request)
         }
                 
         return client.request(request, deviceToken: xAppleDeviceToken, isSandbox: isSandbox)
