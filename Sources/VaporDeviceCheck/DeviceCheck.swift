@@ -41,9 +41,9 @@ public struct DeviceCheck: Middleware {
                     return next.respond(to: request)
                 }
                 
-                if isSandbox {
-                    return request.eventLoop.makeFailedFuture(Abort(.unauthorized))
-                }
+//                if isSandbox {
+//                    return request.eventLoop.makeFailedFuture(Abort(.unauthorized))
+//                }
                 
                 return self.requestDeviceCheck(on: request, chainingTo: next, isSandbox: true)
         }
